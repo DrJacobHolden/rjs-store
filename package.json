@@ -1,6 +1,6 @@
 {
     "name": "@runejs/store",
-    "version": "1.0.0-beta.1",
+    "version": "1.0.0-beta.2",
     "description": "Tools for managing and indexing the asset file store used with RuneJS.",
     "main": "./index.js",
     "types": "./index.d.ts",
@@ -15,12 +15,16 @@
     },
     "scripts": {
         "build": "tsc",
-        "start": "ts-node-dev src/dev.ts",
-        "lint": "eslint --ext .ts src",
-        "lint:fix": "eslint --ext .ts src --fix",
-        "unpack": "ts-node-dev --max-old-space-size=2048 src/scripts/unpacker.ts",
+        "clean": "rimraf indexes && rimraf lib && rimraf logs && rimraf unpacked",
+        "lint": "biome lint",
+        "lint:fix": "biome lint --write",
+        "format": "biome format",
+        "format:fix": "biome format --write",
+        "fin": "npm run lint:fix && npm run format:fix",
+        "start": "ts-node src/dev.ts",
+        "unpack": "ts-node src/scripts/unpacker.ts",
         "unpacker": "npm run unpack",
-        "index": "ts-node-dev --max-old-space-size=2048 src/scripts/indexer.ts",
+        "index": "ts-node src/scripts/indexer.ts",
         "indexer": "npm run index",
         "copy-documents": "copyfiles package.json README.md .npmignore LICENSE lib",
         "package": "rimraf lib && npm i && npm run build && npm run copy-documents && cd lib && npm publish --dry-run",
@@ -48,42 +52,25 @@
     },
     "homepage": "https://github.com/runejs/store#readme",
     "peerDependencies": {
-        "@runejs/common": "2.0.2-beta.2",
-        "graceful-fs": ">=4.2.0",
-        "tslib": ">=2.3.0",
-        "typescript": ">=4.5.0"
+        "@runejs/common": "2.0.2-beta.3",
+        "tslib": ">=2.8.1",
+        "typescript": "^5.7.3"
     },
     "dependencies": {
-        "@runejs/common": "2.0.2-beta.2",
-        "graceful-fs": "^4.2.0",
-        "json5": "^2.2.0",
-        "reflect-metadata": "^0.1.13",
-        "sqlite": "^4.0.25",
-        "tslib": "^2.3.1",
-        "typeorm": "^0.2.44",
-        "yargs": "^17.3.1"
+        "@runejs/common": "2.0.2-beta.3",
+        "better-sqlite3": "^11.8.1",
+        "json5": "^2.2.3",
+        "tslib": ">=2.8.1",
+        "typeorm": "^0.2.45",
+        "yargs": "^17.7.2"
     },
     "devDependencies": {
-        "@runejs/eslint-config": "^1.1.0",
-        "@types/graceful-fs": "^4.1.5",
-        "@types/node": "^16.11.26",
-        "@types/yargs": "^17.0.9",
-        "@typescript-eslint/eslint-plugin": "^5.14.0",
-        "@typescript-eslint/parser": "^5.14.0",
-        "better-sqlite3": "^7.5.0",
+        "@biomejs/biome": "1.9.4",
+        "@types/node": "^22.10.7",
+        "@types/yargs": "^17.0.33",
         "copyfiles": "^2.4.1",
-        "eslint": "^8.11.0",
-        "rimraf": "^3.0.2",
-        "source-map-support": "^0.5.21",
-        "ts-node-dev": "^1.1.8",
-        "typescript": "^4.5.5"
-    },
-    "eslintConfig": {
-        "extends": [
-            "@runejs/eslint-config"
-        ],
-        "parserOptions": {
-            "project": "./tsconfig.json"
-        }
+        "rimraf": "6.0.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.7.3"
     }
 }
