@@ -1,13 +1,12 @@
 import type { CompressionMethod } from '@runejs/common/compress';
 import type { EncryptionMethod } from '@runejs/common/encrypt';
 
-
 export interface ArchiveConfig {
     index: number;
     name: string;
     versioned?: boolean;
     compression?: CompressionMethod;
-    encryption?: EncryptionMethod | [ EncryptionMethod, string ];
+    encryption?: EncryptionMethod | [EncryptionMethod, string];
     contentType?: string;
     filesNamed?: boolean;
     flatten?: boolean;

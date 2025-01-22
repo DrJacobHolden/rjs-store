@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+    existsSync,
+    mkdirSync,
+    readdirSync,
+    readFileSync,
+    rmSync,
+    statSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import JSON5 from 'json5';
 import { ByteBuffer, logger } from '@runejs/common';
@@ -9,18 +16,18 @@ import { Archive, FileState } from './index';
 import { ArchiveIndexEntity, IndexService, StoreIndexEntity } from './db';
 import type { ArchiveConfig } from './config';
 
-
 export type StoreFormat = 'unpacked' | 'packed';
 
 export interface StoreOptions {
     outputPath?: string | undefined;
 }
 
-
 export class Store {
-
     public readonly archives: Map<string, Archive> = new Map<string, Archive>();
-    public readonly fileNameHashes: Map<number, string> = new Map<number, string>();
+    public readonly fileNameHashes: Map<number, string> = new Map<
+        number,
+        string
+    >();
     public readonly indexService: IndexService;
 
     private _js5MainIndex: ByteBuffer;
@@ -39,7 +46,11 @@ export class Store {
     private _gameBuild: string;
     private _gameBuildMissing: boolean;
 
-    protected constructor(gameBuild: string, path: string, outputPath?: string) {
+    protected constructor(
+        gameBuild: string,
+        path: string,
+        outputPath?: string,
+    ) {
         this._gameBuild = gameBuild;
         this._path = path;
         this._outputPath = outputPath ? outputPath : join(path, 'unpacked');
@@ -48,14 +59,18 @@ export class Store {
         Crc32.init();
     }
 
-    public static async create(gameBuild: string, path = './', options?: StoreOptions): Promise<Store> {
+    public static async create(
+        gameBuild: string,
+        path = './',
+        options?: StoreOptions,
+    ): Promise<Store> {
         const store = new Store(gameBuild, path, options?.outputPath);
 
         await store.indexService.load();
 
         store._index = await store.indexService.getStoreIndex();
 
-        if(!store._index) {
+        if (!store._index) {
             store._index = new StoreIndexEntity();
             store._index.gameBuild = gameBuild;
         }
@@ -66,73 +81,88 @@ export class Store {
         store.archives.clear();
 
         const archiveConfigs = Object.entries(store.archiveConfig);
-        const mainArchiveConfig = Array.from(Object.values(store.archiveConfig)).find(a => a.index === 255);
+        const mainArchiveConfig = Array.from(
+            Object.values(store.archiveConfig),
+        ).find((a) => a.index === 255);
 
-        if(!mainArchiveConfig) {
-            throw new Error('Main archive (index 255) configuration was not found. ' +
-                'Please configure the main archive using the archives.json5 file within the store config directory.')
+        if (!mainArchiveConfig) {
+            throw new Error(
+                'Main archive (index 255) configuration was not found. ' +
+                    'Please configure the main archive using the archives.json5 file within the store config directory.',
+            );
         }
 
         const mainArchiveIndex = new ArchiveIndexEntity();
         mainArchiveIndex.key = 255;
         mainArchiveIndex.gameBuild = gameBuild;
         mainArchiveIndex.name = 'main';
-        store._mainArchive = new Archive(mainArchiveIndex, mainArchiveConfig, { store });
+        store._mainArchive = new Archive(mainArchiveIndex, mainArchiveConfig, {
+            store,
+        });
 
         let archiveIndexes = await store.indexService.getArchiveIndexes();
 
-        if(!archiveIndexes?.length) {
+        if (!archiveIndexes?.length) {
             archiveIndexes = new Array(archiveConfigs.length);
         }
 
-        for(const [ name, config ] of archiveConfigs) {
-            if(config.index === 255) {
+        for (const [name, config] of archiveConfigs) {
+            if (config.index === 255) {
                 continue;
             }
 
-            if(config.build) {
+            if (config.build) {
                 let revision: number;
-                if(gameBuild.includes('_')) {
-                    revision = Number(gameBuild.substring(gameBuild.indexOf('_') + 1));
+                if (gameBuild.includes('_')) {
+                    revision = Number(
+                        gameBuild.substring(gameBuild.indexOf('_') + 1),
+                    );
                 } else {
                     revision = Number(gameBuild);
                 }
-                if(revision < config.build) {
+                if (revision < config.build) {
                     // logger.info(`Skipping archive ${name} as it is not available in this game build.`);
                     continue;
                 }
             }
 
-            let archiveIndex = archiveIndexes.find(a => a?.key === config.index);
-            if(!archiveIndex) {
+            let archiveIndex = archiveIndexes.find(
+                (a) => a?.key === config.index,
+            );
+            if (!archiveIndex) {
                 archiveIndex = store.indexService.validateArchive({
                     numericKey: config.index,
                     name,
                     nameHash: store.hashFileName(name),
-                    config
+                    config,
                 });
             }
 
             const archive = new Archive(archiveIndex, config, {
-                store, archive: store._mainArchive
+                store,
+                archive: store._mainArchive,
             });
 
             store.archives.set(archive.key, archive);
 
             // Bulk-fetch the archive's groups
             // biome-ignore lint/suspicious/noAssignInExpressions: Legacy
-                        const groups = archiveIndex.groups = await store.indexService.getGroupIndexes(archiveIndex);
+            const groups = (archiveIndex.groups =
+                await store.indexService.getGroupIndexes(archiveIndex));
 
             // Bulk-fetch the archive's files and sort them into the appropriate groups
-            const archiveFileIndexes = await store.indexService.getFileIndexes(archiveIndex);
-            for(const fileIndex of archiveFileIndexes) {
-                const group = groups.find(group => group.key === fileIndex.groupKey);
-                if(!group) {
+            const archiveFileIndexes =
+                await store.indexService.getFileIndexes(archiveIndex);
+            for (const fileIndex of archiveFileIndexes) {
+                const group = groups.find(
+                    (group) => group.key === fileIndex.groupKey,
+                );
+                if (!group) {
                     continue;
                 }
 
-                if(!Array.isArray(group.files) || !group.files?.length) {
-                    group.files = [ fileIndex ];
+                if (!Array.isArray(group.files) || !group.files?.length) {
+                    group.files = [fileIndex];
                 } else {
                     group.files.push(fileIndex);
                 }
@@ -145,12 +175,12 @@ export class Store {
     public loadPackedStore(): void {
         const js5StorePath = join(this.path, 'packed');
 
-        if(!existsSync(js5StorePath)) {
+        if (!existsSync(js5StorePath)) {
             throw new Error(`${js5StorePath} could not be found.`);
         }
 
         const stats = statSync(js5StorePath);
-        if(!stats?.isDirectory()) {
+        if (!stats?.isDirectory()) {
             throw new Error(`${js5StorePath} is not a valid directory.`);
         }
 
@@ -158,12 +188,16 @@ export class Store {
         const dataFile = 'main_file_cache.dat2';
         const mainIndexFile = 'main_file_cache.idx255';
 
-        if(storeFileNames.indexOf(dataFile) === -1) {
-            throw new Error(`The main ${dataFile} data file could not be found.`);
+        if (storeFileNames.indexOf(dataFile) === -1) {
+            throw new Error(
+                `The main ${dataFile} data file could not be found.`,
+            );
         }
 
-        if(storeFileNames.indexOf(mainIndexFile) === -1) {
-            throw new Error(`The main ${mainIndexFile} index file could not be found.`);
+        if (storeFileNames.indexOf(mainIndexFile) === -1) {
+            throw new Error(
+                `The main ${mainIndexFile} index file could not be found.`,
+            );
         }
 
         const indexFilePrefix = 'main_file_cache.idx';
@@ -174,29 +208,40 @@ export class Store {
         this._js5MainIndex = new ByteBuffer(readFileSync(mainIndexFilePath));
         this._js5ArchiveIndexes = new Map<string, ByteBuffer>();
 
-        for(const fileName of storeFileNames) {
-            if(!fileName?.length || fileName === mainIndexFile || fileName === dataFile) {
+        for (const fileName of storeFileNames) {
+            if (
+                !fileName?.length ||
+                fileName === mainIndexFile ||
+                fileName === dataFile
+            ) {
                 continue;
             }
 
-            if(!fileName.startsWith(indexFilePrefix)) {
+            if (!fileName.startsWith(indexFilePrefix)) {
                 continue;
             }
 
             const index = fileName.substring(fileName.indexOf('.idx') + 4);
             const numericIndex = Number(index);
 
-            if(Number.isNaN(numericIndex)) {
-                logger.error(`Index file ${fileName} does not have a valid extension.`);
+            if (Number.isNaN(numericIndex)) {
+                logger.error(
+                    `Index file ${fileName} does not have a valid extension.`,
+                );
             }
 
-            if(!this.has(index)) {
-                logger.warn(`Archive ${index} was found within the JS5 store, but is not configured for flat file store use.`,
-                    'Please add the archive to the archives.json5 configuration file to load it properly.');
+            if (!this.has(index)) {
+                logger.warn(
+                    `Archive ${index} was found within the JS5 store, but is not configured for flat file store use.`,
+                    'Please add the archive to the archives.json5 configuration file to load it properly.',
+                );
                 continue;
             }
 
-            this._js5ArchiveIndexes.set(index, new ByteBuffer(readFileSync(join(js5StorePath, fileName))));
+            this._js5ArchiveIndexes.set(
+                index,
+                new ByteBuffer(readFileSync(join(js5StorePath, fileName))),
+            );
         }
 
         logger.info(`Packed store loaded for game build ${this.gameBuild}.`);
@@ -207,7 +252,7 @@ export class Store {
     }
 
     public decode(decodeGroups = true): ByteBuffer | null {
-        this.archives.forEach(archive => archive.decode(decodeGroups));
+        this.archives.forEach((archive) => archive.decode(decodeGroups));
         return null;
     }
 
@@ -219,36 +264,44 @@ export class Store {
         this._data.put(0);
         this._data.put(fileSize, 'int');
 
-        for(let archiveIndex = 0; archiveIndex < this.archiveCount; archiveIndex++) {
+        for (
+            let archiveIndex = 0;
+            archiveIndex < this.archiveCount;
+            archiveIndex++
+        ) {
             this._data.put(this.get(archiveIndex).index.crc32, 'int');
         }
 
         this.mainArchive.setData(this._data, FileState.encoded);
-        this.mainArchive.index.data = this.index.data = this._data.toNodeBuffer();
+        this.mainArchive.index.data = this.index.data =
+            this._data.toNodeBuffer();
 
-        if(encodeGroups) {
-            this.archives.forEach(archive => archive.encode(true));
+        if (encodeGroups) {
+            this.archives.forEach((archive) => archive.encode(true));
         }
 
         return this.data;
     }
 
     public compress(compressGroups = true): ByteBuffer | null {
-        this.archives.forEach(archive => archive.compress(compressGroups));
+        this.archives.forEach((archive) => archive.compress(compressGroups));
 
         this._compressed = true;
         return this._data;
     }
 
-    public async read(compress = false, readDiskFiles = true): Promise<ByteBuffer> {
+    public async read(
+        compress = false,
+        readDiskFiles = true,
+    ): Promise<ByteBuffer> {
         this._js5Encoded = false;
         this._compressed = false;
 
-        for(const [ , archive ] of this.archives) {
+        for (const [, archive] of this.archives) {
             await archive.read(false, readDiskFiles);
         }
 
-        if(compress) {
+        if (compress) {
             this.compress();
         }
 
@@ -256,79 +309,90 @@ export class Store {
     }
 
     public write(): void {
-        if(!this.archives.size) {
-            throw new Error('Archives not loaded, please load a flat file store or a JS5 store.');
+        if (!this.archives.size) {
+            throw new Error(
+                'Archives not loaded, please load a flat file store or a JS5 store.',
+            );
         }
 
         const start = Date.now();
         logger.info('Writing flat file store...');
 
         try {
-            if(existsSync(this.outputPath)) {
+            if (existsSync(this.outputPath)) {
                 rmSync(this.outputPath, { recursive: true, force: true });
             }
 
             mkdirSync(this.outputPath, { recursive: true });
-        } catch(error) {
-            logger.error(`Error clearing file store output path (${this.outputPath}):`, error);
+        } catch (error) {
+            logger.error(
+                `Error clearing file store output path (${this.outputPath}):`,
+                error,
+            );
             return;
         }
 
         try {
             logger.info('Writing archive contents to disk...');
-            this.archives.forEach(archive => archive.write());
+            this.archives.forEach((archive) => archive.write());
             logger.info('Archives written.');
-        } catch(error) {
+        } catch (error) {
             logger.error('Error writing archives:', error);
             return;
         }
 
         const end = Date.now();
-        logger.info(`Flat file store written in ${(end - start) / 1000} seconds.`);
+        logger.info(
+            `Flat file store written in ${(end - start) / 1000} seconds.`,
+        );
     }
 
-    public async saveIndexData(saveArchives = true, saveGroups = true, saveFiles = true): Promise<void> {
+    public async saveIndexData(
+        saveArchives = true,
+        saveGroups = true,
+        saveFiles = true,
+    ): Promise<void> {
         try {
             await this.indexService.saveStoreIndex();
             logger.info('File store index saved.');
-        } catch(error) {
+        } catch (error) {
             logger.error('Error indexing file store:', error);
             return;
         }
 
-        if(saveArchives) {
+        if (saveArchives) {
             logger.info('Indexing archives...');
 
-            for(const [ , archive ] of this.archives) {
+            for (const [, archive] of this.archives) {
                 try {
                     await archive.saveIndexData(false);
-                } catch(error) {
+                } catch (error) {
                     logger.error('Error indexing archive:', error);
                     return;
                 }
             }
         }
 
-        if(saveGroups) {
+        if (saveGroups) {
             logger.info('Indexing archive groups...');
 
-            for(const [ , archive ] of this.archives) {
+            for (const [, archive] of this.archives) {
                 try {
                     await archive.saveGroupIndexes(false);
-                } catch(error) {
+                } catch (error) {
                     logger.error('Error indexing group:', error);
                     return;
                 }
             }
         }
 
-        if(saveFiles) {
+        if (saveFiles) {
             logger.info('Indexing archive files...');
 
-            for(const [ , archive ] of this.archives) {
+            for (const [, archive] of this.archives) {
                 try {
                     await archive.saveFlatFileIndexes();
-                } catch(error) {
+                } catch (error) {
                     logger.error('Error indexing flat file:', error);
                     return;
                 }
@@ -337,7 +401,11 @@ export class Store {
     }
 
     public find(archiveName: string): Archive {
-        return Array.from(this.archives.values()).find(child => child?.name === archiveName) ?? null;
+        return (
+            Array.from(this.archives.values()).find(
+                (child) => child?.name === archiveName,
+            ) ?? null
+        );
     }
 
     public get(archiveKey: string): Archive | null;
@@ -360,30 +428,37 @@ export class Store {
 
     public loadArchiveConfig(): void {
         const configPath = join(this.path, 'config', 'archives.json5');
-        if(!existsSync(configPath)) {
+        if (!existsSync(configPath)) {
             logger.error(`Error loading store: ${configPath} was not found.`);
             return;
         }
 
-        this._archiveConfig = JSON5.parse(readFileSync(configPath, 'utf-8')) as { [key: string]: ArchiveConfig };
+        this._archiveConfig = JSON5.parse(
+            readFileSync(configPath, 'utf-8'),
+        ) as { [key: string]: ArchiveConfig };
 
-        if(!Object.values(this._archiveConfig)?.length) {
-            throw new Error(`Error reading archive configuration file. Please ensure that the ${configPath} file exists and is valid.`);
+        if (!Object.values(this._archiveConfig)?.length) {
+            throw new Error(
+                `Error reading archive configuration file. Please ensure that the ${configPath} file exists and is valid.`,
+            );
         }
     }
 
     public getEncryptionKeys(fileName: string): XteaKeys | XteaKeys[] | null {
-        if(!this.encryptionKeys.size) {
+        if (!this.encryptionKeys.size) {
             this.loadEncryptionKeys();
         }
 
         const keySets = this.encryptionKeys.get(fileName);
-        if(!keySets) {
+        if (!keySets) {
             return null;
         }
 
-        if(this.gameBuild !== undefined) {
-            return keySets.find(keySet => keySet.gameBuild === this.gameBuild) ?? null;
+        if (this.gameBuild !== undefined) {
+            return (
+                keySets.find((keySet) => keySet.gameBuild === this.gameBuild) ??
+                null
+            );
         }
 
         return keySets;
@@ -393,39 +468,44 @@ export class Store {
         const configPath = join(this.path, 'config', 'xtea');
         this._encryptionKeys = Xtea.loadKeys(configPath);
 
-        if(!this.encryptionKeys.size) {
-            throw new Error(`Error reading encryption key lookup table. Please ensure that the ${configPath} file exists and is valid.`);
+        if (!this.encryptionKeys.size) {
+            throw new Error(
+                `Error reading encryption key lookup table. Please ensure that the ${configPath} file exists and is valid.`,
+            );
         }
     }
 
     public hashFileName(fileName: string): number {
-        if(!fileName) {
+        if (!fileName) {
             return 0;
         }
 
         let hash = 0;
-        for(let i = 0; i < fileName.length; i++) {
+        for (let i = 0; i < fileName.length; i++) {
             hash = fileName.charCodeAt(i) + ((hash << 5) - hash);
         }
 
         return hash | 0;
     }
 
-    public findFileName(nameHash: string | number | undefined, defaultName?: string | undefined): string | undefined {
-        if(!this.fileNameHashes.size) {
+    public findFileName(
+        nameHash: string | number | undefined,
+        defaultName?: string | undefined,
+    ): string | undefined {
+        if (!this.fileNameHashes.size) {
             this.loadFileNames();
         }
 
-        if(nameHash === undefined || nameHash === null) {
+        if (nameHash === undefined || nameHash === null) {
             return defaultName;
         }
 
-        if(typeof nameHash === 'string') {
+        if (typeof nameHash === 'string') {
             // biome-ignore lint/style/noParameterAssign: Legacy
             nameHash = Number(nameHash);
         }
 
-        if(Number.isNaN(nameHash) || nameHash === -1 || nameHash === 0) {
+        if (Number.isNaN(nameHash) || nameHash === -1 || nameHash === 0) {
             return defaultName;
         }
 
@@ -434,16 +514,24 @@ export class Store {
 
     public loadFileNames(): void {
         const configPath = join(this.path, 'config', 'name-hashes.json');
-        if(!existsSync(configPath)) {
-            logger.error(`Error loading file names: ${configPath} was not found.`);
+        if (!existsSync(configPath)) {
+            logger.error(
+                `Error loading file names: ${configPath} was not found.`,
+            );
             return;
         }
 
-        const nameTable = JSON.parse(readFileSync(configPath, 'utf-8')) as { [key: string]: string };
-        Object.keys(nameTable).forEach(nameHash => this.fileNameHashes.set(Number(nameHash), nameTable[nameHash]));
+        const nameTable = JSON.parse(readFileSync(configPath, 'utf-8')) as {
+            [key: string]: string;
+        };
+        Object.keys(nameTable).forEach((nameHash) =>
+            this.fileNameHashes.set(Number(nameHash), nameTable[nameHash]),
+        );
 
-        if(!this.fileNameHashes.size) {
-            throw new Error(`Error reading file name lookup table. Please ensure that the ${configPath} file exists and is valid.`);
+        if (!this.fileNameHashes.size) {
+            throw new Error(
+                `Error reading file name lookup table. Please ensure that the ${configPath} file exists and is valid.`,
+            );
         }
     }
 
@@ -456,7 +544,7 @@ export class Store {
     }
 
     public get js5MainIndex(): ByteBuffer {
-        if(!this._js5MainIndex?.length || !this._js5MainArchiveData?.length) {
+        if (!this._js5MainIndex?.length || !this._js5MainArchiveData?.length) {
             this.decode();
         }
 
@@ -464,7 +552,7 @@ export class Store {
     }
 
     public get js5ArchiveIndexes(): Map<string, ByteBuffer> {
-        if(!this._js5MainIndex?.length || !this._js5MainArchiveData?.length) {
+        if (!this._js5MainIndex?.length || !this._js5MainArchiveData?.length) {
             this.decode();
         }
 
@@ -472,7 +560,7 @@ export class Store {
     }
 
     public get js5MainArchiveData(): ByteBuffer {
-        if(!this._js5MainIndex?.length || !this._js5MainArchiveData?.length) {
+        if (!this._js5MainIndex?.length || !this._js5MainArchiveData?.length) {
             this.decode();
         }
 

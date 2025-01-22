@@ -5,7 +5,6 @@ import { logger } from '@runejs/common';
 import { Store, type StoreFormat } from '../index';
 import { ScriptExecutor, type ArgumentOptions } from './index';
 
-
 interface IndexerOptions {
     dir: string;
     format: StoreFormat | 'flat' | 'js5';
@@ -13,55 +12,66 @@ interface IndexerOptions {
     build: string;
 }
 
-
 const indexerArgumentOptions: ArgumentOptions = {
     dir: {
-        alias: 'd', type: 'string', default: './',
-        description: 'The store root directory. Defaults to the current location.'
+        alias: 'd',
+        type: 'string',
+        default: './',
+        description:
+            'The store root directory. Defaults to the current location.',
     },
     format: {
-        alias: 'f', type: 'string', default: 'unpacked', choices: [ 'unpacked', 'packed', 'flat', 'js5' ],
-        description: `The format of the store to index, either 'unpacked' (flat files) or 'packed' (JS5 format). Defaults to 'unpacked'.`
+        alias: 'f',
+        type: 'string',
+        default: 'unpacked',
+        choices: ['unpacked', 'packed', 'flat', 'js5'],
+        description: `The format of the store to index, either 'unpacked' (flat files) or 'packed' (JS5 format). Defaults to 'unpacked'.`,
     },
     archive: {
-        alias: 'a', type: 'string', default: 'main',
-        description: `The archive to index. Defaults to 'main', which will index all store archives one by one. Specify an archive name to index a single archive.`
+        alias: 'a',
+        type: 'string',
+        default: 'main',
+        description: `The archive to index. Defaults to 'main', which will index all store archives one by one. Specify an archive name to index a single archive.`,
     },
     build: {
-        alias: 'b', type: 'string', default: '435',
-        description: `The game build (revision) that the store should belong to, also known as the game build number. Defaults to '435', a game build from late October, 2006.`
-    }
+        alias: 'b',
+        type: 'string',
+        default: '435',
+        description: `The game build (revision) that the store should belong to, also known as the game build number. Defaults to '435', a game build from late October, 2006.`,
+    },
 };
 
-
 async function indexFiles(store: Store, args: IndexerOptions): Promise<void> {
-    const argDebugString = args ? Array.from(Object.entries(args))
-        .map(([ key, val ]) => `${key} = ${val}`).join(', ') : '';
+    const argDebugString = args
+        ? Array.from(Object.entries(args))
+              .map(([key, val]) => `${key} = ${val}`)
+              .join(', ')
+        : '';
 
     const { archive: archiveName } = args;
 
     let format = args.format;
-    if(format === 'js5') {
+    if (format === 'js5') {
         format = 'packed';
-    } else if(format === 'flat') {
+    } else if (format === 'flat') {
         format = 'unpacked';
     }
 
-    if(format === 'packed') {
+    if (format === 'packed') {
         store.loadPackedStore();
     } else {
         const outputDir = store.outputPath;
-        if(!existsSync(outputDir)) {
+        if (!existsSync(outputDir)) {
             mkdirSync(outputDir, { recursive: true });
         }
     }
 
-    if(archiveName === 'main') {
+    if (archiveName === 'main') {
         logger.info(`Indexing ${format} store with arguments:`, argDebugString);
 
-        if(format === 'unpacked') {
+        if (format === 'unpacked') {
             await store.read();
-        } else if(format === 'packed') {
+        } else if (format === 'packed') {
             store.decode(true);
         }
 
@@ -70,13 +80,16 @@ async function indexFiles(store: Store, args: IndexerOptions): Promise<void> {
 
         await store.saveIndexData(true, true, true);
     } else {
-        logger.info(`Indexing ${format} archive ${archiveName} with arguments:`, argDebugString);
+        logger.info(
+            `Indexing ${format} archive ${archiveName} with arguments:`,
+            argDebugString,
+        );
 
         const archive = store.find(archiveName);
 
-        if(format === 'unpacked') {
+        if (format === 'unpacked') {
             await archive.read(false);
-        } else if(format === 'packed') {
+        } else if (format === 'packed') {
             archive.decode();
         }
 
@@ -88,30 +101,32 @@ async function indexFiles(store: Store, args: IndexerOptions): Promise<void> {
     }
 }
 
+new ScriptExecutor().executeScript<IndexerOptions>(
+    indexerArgumentOptions,
+    async (terminal, args) => {
+        const start = Date.now();
+        logger.info('Indexing store...');
 
-new ScriptExecutor().executeScript<IndexerOptions>(indexerArgumentOptions, async (terminal, args) => {
-    const start = Date.now();
-    logger.info('Indexing store...');
+        const { build, dir } = args;
 
-    const { build, dir } = args;
+        const logDir = join(dir, 'logs');
 
-    const logDir = join(dir, 'logs');
+        if (!existsSync(logDir)) {
+            mkdirSync(logDir, { recursive: true });
+        }
 
-    if(!existsSync(logDir)) {
-        mkdirSync(logDir, { recursive: true });
-    }
+        logger.destination(join(logDir, `index_${build}.log`));
 
-    logger.destination(join(logDir, `index_${build}.log`));
+        const store = await Store.create(build, dir);
 
-    const store = await Store.create(build, dir);
+        await indexFiles(store, args);
 
-    await indexFiles(store, args);
+        logger.boom.flushSync();
+        logger.boom.end();
 
-    logger.boom.flushSync();
-    logger.boom.end();
+        const end = Date.now();
+        logger.info(`Indexing completed in ${(end - start) / 1000} seconds.`);
 
-    const end = Date.now();
-    logger.info(`Indexing completed in ${(end - start) / 1000} seconds.`);
-
-    process.exit(0);
-});
+        process.exit(0);
+    },
+);

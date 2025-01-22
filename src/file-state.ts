@@ -50,5 +50,5 @@ export enum FileState {
     /**
      * The file was not found.
      */
-    missing = 'missing'
+    missing = 'missing',
 }

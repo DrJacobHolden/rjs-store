@@ -1,19 +1,33 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    ManyToOne,
+    OneToMany,
+    PrimaryColumn,
+} from 'typeorm';
 import { FileIndexEntity } from './file-index.entity';
 import { ArchiveIndexEntity } from './archive-index.entity';
 import { IndexEntity } from './index-entity';
 import { StoreIndexEntity } from './store-index.entity';
 import type { FileState } from '../file-state';
 
-
 @Entity('group_index')
-@Index('group_identifier', [ 'key', 'gameBuild', 'archiveKey' ], { unique: true })
+@Index('group_identifier', ['key', 'gameBuild', 'archiveKey'], { unique: true })
 export class GroupIndexEntity extends IndexEntity {
-
-    @PrimaryColumn('text', { name: 'game_build', nullable: false, unique: false })
+    @PrimaryColumn('text', {
+        name: 'game_build',
+        nullable: false,
+        unique: false,
+    })
     gameBuild: string;
 
-    @PrimaryColumn('integer', { name: 'archive_key', unique: false, nullable: false })
+    @PrimaryColumn('integer', {
+        name: 'archive_key',
+        unique: false,
+        nullable: false,
+    })
     archiveKey: number;
 
     @Column('boolean', { name: 'flat', nullable: false, default: false })
@@ -34,21 +48,29 @@ export class GroupIndexEntity extends IndexEntity {
     @Column('text', { name: 'data_state', nullable: false })
     state: FileState;
 
-    @ManyToOne(() => StoreIndexEntity, async store => store.groups,
-        { primary: true, onDelete: 'CASCADE' })
+    @ManyToOne(
+        () => StoreIndexEntity,
+        async (store) => store.groups,
+        { primary: true, onDelete: 'CASCADE' },
+    )
     @JoinColumn({ name: 'game_build', referencedColumnName: 'gameBuild' })
     store: StoreIndexEntity;
 
-    @ManyToOne(() => ArchiveIndexEntity, async archive => archive.groups,
-        { primary: true, onDelete: 'CASCADE' })
+    @ManyToOne(
+        () => ArchiveIndexEntity,
+        async (archive) => archive.groups,
+        { primary: true, onDelete: 'CASCADE' },
+    )
     @JoinColumn([
         { name: 'archive_key', referencedColumnName: 'key' },
-        { name: 'game_build', referencedColumnName: 'gameBuild' }
+        { name: 'game_build', referencedColumnName: 'gameBuild' },
     ])
     archive: ArchiveIndexEntity;
 
-    @OneToMany(() => FileIndexEntity, fileIndex => fileIndex.group,
-        { cascade: true, lazy: true })
+    @OneToMany(
+        () => FileIndexEntity,
+        (fileIndex) => fileIndex.group,
+        { cascade: true, lazy: true },
+    )
     files: Promise<FileIndexEntity[]> | FileIndexEntity[];
-
 }

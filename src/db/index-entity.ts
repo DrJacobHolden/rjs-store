@@ -1,9 +1,12 @@
-import { Column, CreateDateColumn, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import {
+    Column,
+    CreateDateColumn,
+    PrimaryColumn,
+    UpdateDateColumn,
+} from 'typeorm';
 import type { FileState } from '../index';
 
-
 export abstract class IndexEntity {
-
     @PrimaryColumn('integer', { nullable: false, unique: false })
     key: number;
 
