@@ -1,11 +1,11 @@
-import { join } from 'path';
-import { existsSync, mkdirSync, rmSync } from 'graceful-fs';
+import { join } from 'node:path';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { ByteBuffer, logger } from '@runejs/common';
 
 import { ArchiveFormat, FileState, FlatFile, Group } from './index';
-import { ArchiveIndexEntity } from './db';
-import { FileBreadcrumb, IndexedFile } from './indexed-file';
-import { ArchiveConfig } from './config';
+import type { ArchiveIndexEntity } from './db';
+import { type FileBreadcrumb, IndexedFile } from './indexed-file';
+import type { ArchiveConfig } from './config';
 import { archiveFlags } from './config/archive-flags';
 
 
@@ -29,7 +29,7 @@ export class Archive extends IndexedFile<ArchiveIndexEntity> {
         this.compression = this.config.compression || 'none';
     }
 
-    public override decode(decodeGroups: boolean = true): ByteBuffer | null {
+    public override decode(decodeGroups = true): ByteBuffer | null {
         logger.info(`Decoding archive ${this.name}...`);
 
         this._missingEncryptionKeys = 0;
@@ -45,11 +45,12 @@ export class Archive extends IndexedFile<ArchiveIndexEntity> {
         this.decompress();
 
         if(!this._data?.length) {
-            logger.error(`Error decompressing file data.`);
+            logger.error('Error decompressing file data.');
             return null;
         }
 
         const archiveData = this._data;
+        // biome-ignore lint/suspicious/noAssignInExpressions: Legacy
         const format = this.index.format = archiveData.get('byte', 'unsigned');
         const mainDataType = format >= ArchiveFormat.smart ? 'smart_int' : 'short';
         this.index.version = format >= ArchiveFormat.versioned ? archiveData.get('int') : 0;
@@ -139,6 +140,7 @@ export class Archive extends IndexedFile<ArchiveIndexEntity> {
             accumulator = 0;
             for(let i = 0; i < fileCount; i++) {
                 const delta = archiveData.get(mainDataType, 'unsigned');
+                // biome-ignore lint/suspicious/noAssignInExpressions: Lecacy
                 const childFileIndex = accumulator += delta;
                 group.set(childFileIndex, new FlatFile(this.indexService.validateFile({
                     numericKey: childFileIndex,
@@ -188,7 +190,7 @@ export class Archive extends IndexedFile<ArchiveIndexEntity> {
         return this._data ?? null;
     }
 
-    public override encode(encodeGroups: boolean = true): ByteBuffer | null {
+    public override encode(encodeGroups = true): ByteBuffer | null {
         if(this.numericKey === 255) {
             return this.store.encode();
         }
@@ -276,14 +278,14 @@ export class Archive extends IndexedFile<ArchiveIndexEntity> {
         return this.data ?? null;
     }
 
-    public override compress(compressGroups: boolean = true): ByteBuffer | null {
+    public override compress(compressGroups = true): ByteBuffer | null {
         if(compressGroups) {
             this.groups.forEach(group => group.compress());
         }
         return super.compress();
     }
 
-    public override async read(compress: boolean = false, readDiskFiles: boolean = true): Promise<ByteBuffer> {
+    public override async read(compress = false, readDiskFiles = true): Promise<ByteBuffer> {
         logger.info(`Reading archive ${this.name}...`);
 
         // Read in all groups within the archive
@@ -311,9 +313,8 @@ export class Archive extends IndexedFile<ArchiveIndexEntity> {
 
         if(compress) {
             return this.compress();
-        } else {
-            return this._data;
         }
+            return this._data;
     }
 
     public override write(): void {
@@ -339,7 +340,7 @@ export class Archive extends IndexedFile<ArchiveIndexEntity> {
         logger.info(`Archive ${this.name || this.key} written in ${(end - start) / 1000} seconds.`)
     }
 
-    public async saveIndexData(saveGroups: boolean = true, saveFiles: boolean = true): Promise<void> {
+    public async saveIndexData(saveGroups = true, saveFiles = true): Promise<void> {
         if(!this.groups.size) {
             return;
         }
@@ -355,7 +356,7 @@ export class Archive extends IndexedFile<ArchiveIndexEntity> {
         logger.info(`Archive ${this.name} indexing complete.`);
     }
 
-    public async saveGroupIndexes(saveFlatFiles: boolean = true): Promise<void> {
+    public async saveGroupIndexes(saveFlatFiles = true): Promise<void> {
         const groups = Array.from(this.groups.values());
 
         if(groups?.length) {

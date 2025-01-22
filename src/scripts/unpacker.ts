@@ -1,9 +1,9 @@
-import { join } from 'path';
-import { existsSync, readdirSync, statSync, mkdirSync } from 'graceful-fs';
+import { join } from 'node:path';
+import { existsSync, readdirSync, statSync, mkdirSync } from 'node:fs';
 import { logger } from '@runejs/common';
 
 import { Store } from '../index';
-import { ScriptExecutor, ArgumentOptions } from './index';
+import { ScriptExecutor, type ArgumentOptions } from './index';
 
 
 interface UnpackOptions {
@@ -17,7 +17,7 @@ interface UnpackOptions {
 const unpackerArgumentOptions: ArgumentOptions = {
     dir: {
         alias: 'd', type: 'string', default: './',
-        description: `The store root directory. Defaults to the current location.`
+        description: 'The store root directory. Defaults to the current location.'
     },
     archive: {
         alias: 'a', type: 'string', default: 'main',
@@ -43,7 +43,7 @@ async function unpackFiles(store: Store, args: UnpackOptions): Promise<void> {
     store.loadPackedStore();
 
     if(archiveName === 'main') {
-        logger.info(`Unpacking JS5 file store with arguments:`, argDebugString);
+        logger.info('Unpacking JS5 file store with arguments:', argDebugString);
 
         store.decode(true);
 
@@ -53,14 +53,14 @@ async function unpackFiles(store: Store, args: UnpackOptions): Promise<void> {
         if(!debug) {
             store.write();
         } else {
-            logger.info(`Flat file store writing is disabled in debug mode.`);
+            logger.info('Flat file store writing is disabled in debug mode.');
         }
 
-        logger.info(`Decoding completed.`);
+        logger.info('Decoding completed.');
 
         await store.saveIndexData(true, true, true);
     } else {
-        logger.info(`Unpacking JS5 archive with arguments:`, argDebugString);
+        logger.info('Unpacking JS5 archive with arguments:', argDebugString);
 
         const a = store.find(archiveName);
 
@@ -76,10 +76,10 @@ async function unpackFiles(store: Store, args: UnpackOptions): Promise<void> {
         if(!debug) {
             a.write();
         } else {
-            logger.info(`Archive writing is disabled in debug mode.`);
+            logger.info('Archive writing is disabled in debug mode.');
         }
 
-        logger.info(`Decoding completed.`);
+        logger.info('Decoding completed.');
 
         await a.saveIndexData(true, true);
     }
@@ -88,7 +88,7 @@ async function unpackFiles(store: Store, args: UnpackOptions): Promise<void> {
 
 new ScriptExecutor().executeScript<UnpackOptions>(unpackerArgumentOptions, async (terminal, args) => {
     const start = Date.now();
-    logger.info(`Unpacking JS5 store...`);
+    logger.info('Unpacking JS5 store...');
 
     const { build, dir } = args;
 

@@ -1,14 +1,14 @@
-import { writeFileSync } from 'graceful-fs';
-import { createHash } from 'crypto';
+import { writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { ByteBuffer, logger } from '@runejs/common';
-import { Bzip2, CompressionMethod, getCompressionMethod, Gzip } from '@runejs/common/compress';
-import { EncryptionMethod, Xtea, XteaKeys } from '@runejs/common/encrypt';
+import { Bzip2, type CompressionMethod, getCompressionMethod, Gzip } from '@runejs/common/compress';
+import { type EncryptionMethod, Xtea, type XteaKeys } from '@runejs/common/encrypt';
 import { Crc32 } from '@runejs/common/crc32';
 
-import { IndexEntity, IndexService } from './db';
-import { Store } from './store';
-import { Archive } from './archive';
-import { Group } from './group';
+import type { IndexEntity, IndexService } from './db';
+import type { Store } from './store';
+import type { Archive } from './archive';
+import type { Group } from './group';
 import { isSet } from './util';
 import { FileState } from './file-state';
 
@@ -28,18 +28,18 @@ export abstract class IndexedFile<T extends IndexEntity> {
     public readonly group: Group;
 
     public index: T;
-    public name: string = '';
-    public nameHash: number = -1;
-    public version: number = 0;
-    public size: number = 0;
-    public crc32: number = -1;
-    public sha256: string = '';
+    public name = '';
+    public nameHash = -1;
+    public version = 0;
+    public size = 0;
+    public crc32 = -1;
+    public sha256 = '';
     public encryption: EncryptionMethod | [ EncryptionMethod, string ] = 'none';
     public compression: CompressionMethod = 'none';
     public state: FileState = FileState.unloaded;
 
     protected _data: ByteBuffer | null = null;
-    protected _modified: boolean = false;
+    protected _modified = false;
 
     protected constructor(index: T, breadcrumb?: Partial<FileBreadcrumb>) {
         this.index = index;
@@ -57,8 +57,8 @@ export abstract class IndexedFile<T extends IndexEntity> {
         if(isSet(index.sha256)) {
             this.sha256 = index.sha256;
         }
-        if(isSet(index['state'])) {
-            this.state = FileState[index['state']];
+        if(isSet(index.state)) {
+            this.state = FileState[index.state];
         }
 
         if(breadcrumb) {
@@ -233,7 +233,7 @@ export abstract class IndexedFile<T extends IndexEntity> {
             // BZIP or GZIP compressed file
             const decompressedLength = compressedData.get('int', 'unsigned');
             if(decompressedLength < 0) {
-                logger.error(this.encryption === 'xtea' ? `Missing or invalid XTEA key.` :
+                logger.error(this.encryption === 'xtea' ? 'Missing or invalid XTEA key.' :
                     `Invalid decompressed file length: ${decompressedLength}`);
             } else {
                 const decompressedData = new ByteBuffer(this.compression === 'bzip' ?
@@ -247,7 +247,7 @@ export abstract class IndexedFile<T extends IndexEntity> {
                     compressedData.readerIndex = compressedData.readerIndex + compressedLength;
 
                     if(data.length !== decompressedLength) {
-                        logger.error(`Compression length mismatch.`);
+                        logger.error('Compression length mismatch.');
                         data = null;
                     }
                 } catch(error) {
@@ -351,8 +351,8 @@ export abstract class IndexedFile<T extends IndexEntity> {
         if(!gameBuild) {
             if(this.store && !this.store.gameBuildMissing) {
                 this.store.setGameBuildMissing();
-                logger.warn(`Game build must be supplied to decompress XTEA encrypted files.`,
-                    `Please provide the game build using the --build argument.`);
+                logger.warn('Game build must be supplied to decompress XTEA encrypted files.',
+                    'Please provide the game build using the --build argument.');
             }
 
             this.setState(FileState.decrypted);
@@ -395,9 +395,8 @@ export abstract class IndexedFile<T extends IndexEntity> {
                 dataCopy.readerIndex = readerIndex;
                 this.setState(FileState.decrypted);
                 return dataCopy;
-            } else {
-                logger.warn(`Invalid XTEA decryption keys found for file ${this.name || this.key} using game build ${gameBuild}.`);
             }
+                logger.warn(`Invalid XTEA decryption keys found for file ${this.name || this.key} using game build ${gameBuild}.`);
         } else {
             // logger.warn(`No XTEA decryption keys found for file ${this.name || this.fileKey} using game build ${gameBuild}.`);
         }
@@ -476,7 +475,7 @@ export abstract class IndexedFile<T extends IndexEntity> {
     }
 
     public get hasNameHash(): boolean {
-        return isSet(this.nameHash) && !isNaN(this.nameHash) && this.nameHash !== -1;
+        return isSet(this.nameHash) && !Number.isNaN(this.nameHash) && this.nameHash !== -1;
     }
 
     public get data(): ByteBuffer {

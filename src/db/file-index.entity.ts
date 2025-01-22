@@ -20,13 +20,13 @@ export class FileIndexEntity extends IndexEntity {
     groupKey: number;
 
     @Column('integer', { name: 'name_hash', nullable: true, default: 0 })
-    nameHash: number = 0;
+    nameHash = 0;
 
     @Column('integer', { nullable: false, default: 0 })
-    version: number = 0;
+    version = 0;
 
     @Column('integer', { name: 'stripe_count', nullable: false, default: 1 })
-    stripeCount: number = 1;
+    stripeCount = 1;
 
     @Column('text', { nullable: true, default: null })
     stripes: string | null = null;

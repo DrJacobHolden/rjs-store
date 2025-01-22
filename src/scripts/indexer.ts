@@ -1,9 +1,9 @@
-import { join } from 'path';
-import { existsSync, mkdirSync } from 'graceful-fs';
+import { join } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
 import { logger } from '@runejs/common';
 
-import { Store, StoreFormat } from '../index';
-import { ScriptExecutor, ArgumentOptions } from './index';
+import { Store, type StoreFormat } from '../index';
+import { ScriptExecutor, type ArgumentOptions } from './index';
 
 
 interface IndexerOptions {
@@ -17,7 +17,7 @@ interface IndexerOptions {
 const indexerArgumentOptions: ArgumentOptions = {
     dir: {
         alias: 'd', type: 'string', default: './',
-        description: `The store root directory. Defaults to the current location.`
+        description: 'The store root directory. Defaults to the current location.'
     },
     format: {
         alias: 'f', type: 'string', default: 'unpacked', choices: [ 'unpacked', 'packed', 'flat', 'js5' ],
@@ -91,7 +91,7 @@ async function indexFiles(store: Store, args: IndexerOptions): Promise<void> {
 
 new ScriptExecutor().executeScript<IndexerOptions>(indexerArgumentOptions, async (terminal, args) => {
     const start = Date.now();
-    logger.info(`Indexing store...`);
+    logger.info('Indexing store...');
 
     const { build, dir } = args;
 

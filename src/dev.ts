@@ -1,5 +1,5 @@
 import { Store } from './index';
-import { join } from 'path';
+import { join } from 'node:path';
 
 
 const store = Store.create('435');

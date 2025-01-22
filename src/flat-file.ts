@@ -1,9 +1,9 @@
-import { join } from 'path';
-import { existsSync, readFileSync } from 'graceful-fs';
+import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { ByteBuffer, logger } from '@runejs/common';
 
-import { FileIndexEntity } from './db';
-import { FileBreadcrumb, IndexedFile } from './indexed-file';
+import type { FileIndexEntity } from './db';
+import { type FileBreadcrumb, IndexedFile } from './indexed-file';
 import { FileState } from './file-state';
 import { isSet } from './util';
 
@@ -11,7 +11,7 @@ import { isSet } from './util';
 export class FlatFile extends IndexedFile<FileIndexEntity> {
 
     public stripes: number[] = [];
-    public stripeCount: number = 1;
+    public stripeCount = 1;
 
     public constructor(index: FileIndexEntity, breadcrumb?: Partial<FileBreadcrumb>) {
         super(index, breadcrumb);
@@ -30,7 +30,7 @@ export class FlatFile extends IndexedFile<FileIndexEntity> {
         }
     }
 
-    public override read(compress: boolean = false): ByteBuffer | null | Promise<ByteBuffer | null> {
+    public override read(compress = false): ByteBuffer | null | Promise<ByteBuffer | null> {
         if(!this.group) {
             throw new Error(`Flat file ${this.key} could not be read as it does not belong to any known groups.`);
         }
@@ -103,9 +103,8 @@ export class FlatFile extends IndexedFile<FileIndexEntity> {
 
         if(this.group.fileCount === 1 || this.archive?.config?.flatten) {
             return groupPath + this.type;
-        } else {
-            return join(groupPath, String(this.name || this.key)) + this.type;
         }
+            return join(groupPath, String(this.name || this.key)) + this.type;
     }
 
     public override get outputPath(): string {
@@ -116,9 +115,8 @@ export class FlatFile extends IndexedFile<FileIndexEntity> {
 
         if(this.group.fileCount === 1 || this.archive?.config?.flatten) {
             return groupOutputPath + this.type;
-        } else {
-            return join(groupOutputPath, String(this.name || this.key) + this.type);
         }
+            return join(groupOutputPath, String(this.name || this.key) + this.type);
     }
 
 }

@@ -1,5 +1,5 @@
-import { CompressionMethod } from '@runejs/common/compress';
-import { EncryptionMethod } from '@runejs/common/encrypt';
+import type { CompressionMethod } from '@runejs/common/compress';
+import type { EncryptionMethod } from '@runejs/common/encrypt';
 
 
 export interface ArchiveConfig {

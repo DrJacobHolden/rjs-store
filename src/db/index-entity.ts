@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, PrimaryColumn, UpdateDateColumn } from 'typeorm';
-import { FileState } from '../index';
+import type { FileState } from '../index';
 
 
 export abstract class IndexEntity {
@@ -11,7 +11,7 @@ export abstract class IndexEntity {
     name: string | null = null;
 
     @Column('integer', { nullable: false, default: 0 })
-    size: number = 0;
+    size = 0;
 
     @Column('integer', { nullable: true, default: null })
     crc32: number | null = null;
@@ -28,4 +28,5 @@ export abstract class IndexEntity {
     @UpdateDateColumn()
     updated: Date;
 
+    state: FileState;
 }

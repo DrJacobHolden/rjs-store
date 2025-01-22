@@ -3,7 +3,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryColumn 
 import { IndexEntity } from './index-entity';
 import { StoreIndexEntity } from './store-index.entity';
 import { GroupIndexEntity } from './group-index.entity';
-import { FileState } from '../file-state';
+import type { FileState } from '../file-state';
 import { ArchiveFormat } from '../config';
 
 
@@ -15,13 +15,13 @@ export class ArchiveIndexEntity extends IndexEntity {
     gameBuild: string;
 
     @Column('integer', { name: 'group_count', nullable: false, default: 0 })
-    groupCount: number = 0;
+    groupCount = 0;
 
     @Column('integer', { name: 'format', nullable: false, default: ArchiveFormat.original })
     format: number = ArchiveFormat.original;
 
     @Column('integer', { nullable: false, default: 0 })
-    version: number = 0;
+    version = 0;
 
     @Column('text', { name: 'data_state', nullable: false })
     state: FileState;

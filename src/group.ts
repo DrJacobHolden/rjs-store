@@ -1,10 +1,10 @@
-import { join } from 'path';
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'graceful-fs';
+import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { ByteBuffer, logger } from '@runejs/common';
 
 import { FlatFile } from './flat-file';
-import { GroupIndexEntity } from './db';
-import { FileBreadcrumb, IndexedFile } from './indexed-file';
+import type { GroupIndexEntity } from './db';
+import { type FileBreadcrumb, IndexedFile } from './indexed-file';
 import { FileState } from './file-state';
 import { isSet } from './util';
 
@@ -15,9 +15,9 @@ export class Group extends IndexedFile<GroupIndexEntity> {
     public readonly fileSizes: Map<string, number> = new Map<string, number>();
 
     public stripes: number[] = [];
-    public stripeCount: number = 1;
+    public stripeCount = 1;
 
-    private _fileCount: number = 0;
+    private _fileCount = 0;
 
     public constructor(index: GroupIndexEntity, breadcrumb?: Partial<FileBreadcrumb>) {
         super(index, breadcrumb);
@@ -154,7 +154,9 @@ export class Group extends IndexedFile<GroupIndexEntity> {
         const groupSize = fileSizes.reduce((a, c) => a + c) + (stripeCount * fileCount * 4) + 1;
         const groupBuffer = new ByteBuffer(groupSize);
 
-        fileData.forEach(data => data.readerIndex = 0);
+        fileData.forEach(data => {
+            data.readerIndex = 0;
+        });
 
         // Write file content stripes
         for(let stripe = 0; stripe < stripeCount; stripe++) {
@@ -192,7 +194,7 @@ export class Group extends IndexedFile<GroupIndexEntity> {
         return this._data;
     }
 
-    public override async read(compress: boolean = false, readDiskFiles: boolean = true): Promise<ByteBuffer | null> {
+    public override async read(compress = false, readDiskFiles = true): Promise<ByteBuffer | null> {
         if(!this.index) {
             logger.error(`Error reading group ${this.name} files: Group is not indexed, please re-index the ` +
                 `${this.archive.name} archive.`);

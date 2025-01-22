@@ -3,7 +3,7 @@ import { FileIndexEntity } from './file-index.entity';
 import { ArchiveIndexEntity } from './archive-index.entity';
 import { IndexEntity } from './index-entity';
 import { StoreIndexEntity } from './store-index.entity';
-import { FileState } from '../file-state';
+import type { FileState } from '../file-state';
 
 
 @Entity('group_index')
@@ -17,19 +17,19 @@ export class GroupIndexEntity extends IndexEntity {
     archiveKey: number;
 
     @Column('boolean', { name: 'flat', nullable: false, default: false })
-    flatFile: boolean = false;
+    flatFile = false;
 
     @Column('integer', { name: 'stripe_count', nullable: false, default: 1 })
-    stripeCount: number = 1;
+    stripeCount = 1;
 
     @Column('text', { nullable: true, default: null })
     stripes: string | null = null;
 
     @Column('integer', { name: 'name_hash', nullable: true, default: 0 })
-    nameHash: number = 0;
+    nameHash = 0;
 
     @Column('integer', { nullable: false, default: 0 })
-    version: number = 0;
+    version = 0;
 
     @Column('text', { name: 'data_state', nullable: false })
     state: FileState;

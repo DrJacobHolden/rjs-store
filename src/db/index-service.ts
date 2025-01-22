@@ -1,10 +1,10 @@
-import { join } from 'path';
-import { existsSync, mkdirSync } from 'graceful-fs';
-import { Connection, createConnection, Repository } from 'typeorm';
+import { join } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { type Connection, createConnection, type Repository } from 'typeorm';
 
 import { logger } from '@runejs/common';
 
-import { Archive, ArchiveFormat, FileState, FlatFile, Group, IndexedFile, IndexEntity, Store } from '../index';
+import { Archive, ArchiveFormat, FileState, FlatFile, Group, type IndexedFile, type IndexEntity, type Store } from '../index';
 import { ArchiveIndexEntity, FileIndexEntity, GroupIndexEntity, StoreIndexEntity } from './index';
 
 
@@ -61,14 +61,17 @@ export class IndexService {
         }
 
         if(!this.connection.isConnected) {
-            logger.error(`The index database connection was closed prematurely.`);
+            logger.error('The index database connection was closed prematurely.');
             return null;
         }
 
         storeIndex.data = this.store.data?.toNodeBuffer() || null;
 
+        // biome-ignore lint/performance/noDelete: Legacy
         delete storeIndex.archives;
+        // biome-ignore lint/performance/noDelete: Legacy
         delete storeIndex.groups;
+        // biome-ignore lint/performance/noDelete: Legacy
         delete storeIndex.files;
 
         let savedIndex: StoreIndexEntity;
@@ -79,7 +82,7 @@ export class IndexService {
             }, storeIndex);
 
             if(!updateResult?.affected) {
-                logger.error(`Main store entity update failed.`);
+                logger.error('Main store entity update failed.');
                 return null;
             }
 
@@ -147,7 +150,7 @@ export class IndexService {
             }
         });
 
-        let affected;
+        let affected: number;
 
         if(existingIndex) {
             const { name, size, version, sha256, crc32, data, state } = archiveIndex;
@@ -159,6 +162,7 @@ export class IndexService {
             existingIndex.data = data;
             existingIndex.state = state;
 
+            // biome-ignore lint/performance/noDelete: Legacy
             delete existingIndex.groups;
 
             const result = await this.archiveRepo.update({
@@ -168,6 +172,7 @@ export class IndexService {
 
             affected = result?.affected || 0;
         } else {
+            // biome-ignore lint/performance/noDelete: Legacy
             delete archiveIndex.groups;
 
             const result = await this.archiveRepo.insert(archiveIndex);
@@ -240,10 +245,11 @@ export class IndexService {
         const groupIndexes = groups.filter(group => this.entityModified(group))
             .map(group => this.validateGroup(group));
 
+        // biome-ignore lint/performance/noDelete: Legacy
         groupIndexes.forEach(i => delete i.files);
 
         if(!groupIndexes.length) {
-            logger.info(`No groups were modified.`);
+            logger.info('No groups were modified.');
         } else {
             await this.groupRepo.save(groupIndexes, {
                 chunk: CHUNK_SIZE, reload: false
@@ -276,7 +282,7 @@ export class IndexService {
                     key: 'ASC'
                 }
             }) || [];
-        } else {
+        }
             // Return all files for the specified group
 
             return await this.fileRepo.find({
@@ -289,7 +295,6 @@ export class IndexService {
                     key: 'ASC'
                 }
             }) || [];
-        }
     }
 
     public validateFile(file: FlatFile | Partial<FlatFile>): FileIndexEntity {
@@ -326,7 +331,7 @@ export class IndexService {
             .map(file => this.validateFile(file));
 
         if(!flatFileIndexes.length) {
-            logger.info(`No flat files were modified.`);
+            logger.info('No flat files were modified.');
         } else {
             logger.info(`${flatFileIndexes.length} flat files were modified.`);
             await this.fileRepo.save(flatFileIndexes, {
